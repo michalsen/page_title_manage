@@ -1,0 +1,116 @@
+<?php
+/** 
+ *  Title Pop
+ *  Carry the node title via a CTA to a webform autocompletion.
+ */
+
+function page_title_manage_init() {
+  // Move this to form submit/validation
+  if ( arg(2) == 'delete' ) {
+    db_delete('page_title_manage')
+          ->condition('page_title_manage', arg(3) )
+          ->execute();
+      }
+   }
+
+
+function page_title_manage_menu() {
+  $items = array();
+  $items['admin/page_title_manage'] = array(
+              'title' => 'Page Title Management',
+              'page callback' => 'page_title_manage_page',
+              'access arguments' => array('access page_title_manage content'),
+              'description' => 'Title POP Control Page',
+              'access callback' => TRUE,
+              'type' => MENU_NORMAL_ITEM,
+          );
+   return $items;
+}
+
+function page_title_manage_page() {
+  // Are you an admin? Hope so.
+  // Obviously this should be based on permissions, not hard-coded role.
+    global $user;
+  if ($user->uid == 1) {
+    return drupal_get_form('page_title_manage_form');
+  }
+   else {
+  // ...or else returnes a blank page
+    return drupal_get_form();
+  }
+}
+
+function page_title_manage_form($form, &$form_state) {
+
+ $tp_results = db_query('SELECT * FROM {page_title_manage}');
+
+ $markup  = '<table>';
+ $markup .= '<tr>';
+ $markup .= '<th>Delete</th>';
+ $markup .= '<th>Content Type [machine name]</th>';
+ $markup .= '<th>Content Element [field id]</th>';
+ $markup .= '<th>Webform [nid]</th>';
+ $markup .= '<th>Webform Component [cid]</th>';
+ $markup .= '</tr>';
+
+  foreach ( $tp_results as $row ) {
+
+    $ct_result = db_query('SELECT name FROM {node_type} WHERE type = :type', array(':type' => $row->content_type))->fetchObject();
+    $ce_result = db_query('SELECT field_name FROM {field_config_instance} WHERE bundle = :bundle AND field_id = :id', array(':bundle' => $row->content_type, ':id' => $row->content_element))->fetchObject();
+    $wf_result = db_query('SELECT title FROM {node} WHERE nid = :nid', array(':nid' => $row->webform))->fetchObject();
+    $wc_result = db_query('SELECT name FROM {webform_component} WHERE cid = :cid', array(':cid' => $row->webform_component))->fetchObject();
+
+      $markup .= '<tr><td>';
+      $markup .= '<a href="/admin/page_title_manage/delete/' . $row->page_title_manage . '">X</a>';
+      $markup .= '</td><td>';
+      $markup .= $ct_result->name . ' [' . $row->content_type . ']';
+      $markup .= '</td><td>';
+      $markup .= $ce_result->field_name . ' [' . $row->content_element . ']';
+      $markup .= '</td><td>';
+      $markup .= $wf_result->title . ' [' . $row->webform . ']';
+      $markup .= '</td><td>';
+      $markup .= $wc_result->name . ' [' . $row->webform_component . ']';
+      $markup .= '</td></tr>';
+
+  }
+
+ $markup .= '<table>';
+
+
+  $form['markup'] = array(
+    '#markup' => $markup,
+    '#title' => t(''),
+    );
+
+
+
+/**
+ *   SUBMIT
+ */
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Submit',
+  );
+
+ $form['#submit'][] = 'page_title_manage_form_submit';
+
+  return $form;
+
+}
+
+
+function page_title_manage_form_submit($form, $form_state) {
+
+   db_insert('page_title_manage')
+         ->fields(array('content_type', 'content_element', 'webform', 'webform_component'))
+         ->values(array(
+           'content_type'      => $form_state['input']['content_type'],
+           'content_element'   => $form_state['input']['dropdown_second'],
+           'webform'           => $form_state['input']['webforms'],
+           'webform_component' => $form_state['input']['dropdown_second_element'],
+
+         ))
+        ->execute();
+}
+
+

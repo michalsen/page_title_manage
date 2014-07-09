@@ -1,0 +1,23 @@
+<?php
+
+/**
+ * @file
+ * Title Pop install file.
+ */
+
+function page_title_manage_schema() {
+$schema['page_title_manage'] = array(
+        'description' => 'Control for Title Pop.',
+          'fields' => array(
+            'page_title_manage' => array(
+              'description' => 'auto increment id',
+              'type' => 'serial'),
+            'content_type' => array(
+              'description' => 'content type',
+              'type' => 'varchar',
+              'length' => 255),
+         ),
+        'primary key' => array('page_title_manage'),
+     );
+   return $schema;
+}
