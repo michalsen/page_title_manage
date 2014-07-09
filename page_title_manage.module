@@ -1,7 +1,8 @@
 <?php
 /** 
- *  Title Pop
- *  Carry the node title via a CTA to a webform autocompletion.
+ * @file
+ *  Page Title Management
+ *  Manage the page titles
  */
 
 function page_title_manage_init() {
@@ -19,13 +20,31 @@ function page_title_manage_menu() {
               'access callback' => TRUE,
               'type' => MENU_NORMAL_ITEM,
           );
+
+  $items['admin/page_title_manage/tab1'] = array(
+    'title' => 'Nodes w/o Page Title',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -10
+  );
+
+  $items['admin/page_title_manage/tab2'] = array(
+    'title' => 'Locked Out Pages',
+    'type' => MENU_LOCAL_TASK,
+    'page callback' => 'page_title_manage_page',
+    'access arguments' => array('some permission')
+  );
+
+  $items['admin/page_title_manage/tab3'] = array(
+    'title' => 'Set Page Titles',
+    'type' => MENU_LOCAL_TASK,
+    'page callback' => 'page_title_manage_page',
+    'access arguments' => array('some permission')
+  );
    return $items;
 }
 
 function page_title_manage_page() {
-  // Are you an admin? Hope so.
-  // Obviously this should be based on permissions, not hard-coded role.
-    global $user;
+ global $user;
   if ($user->uid == 1) {
     return drupal_get_form('page_title_manage_form');
   }
@@ -37,8 +56,58 @@ function page_title_manage_page() {
 
 function page_title_manage_form($form, &$form_state) {
 
+$node_results = db_query('SELECT nid FROM {node}');
+$page_results = db_query('SELECT id FROM {page_title} WHERE type = :type', array(':type' => "node"))->fetchAll();
+$nids_results = db_query('SELECT page_title_manage FROM {page_title_manage}');
 
 
+foreach ( $node_results as $result ) {
+  $existing[] = $result->nid;
+}
+
+foreach ( $page_results as $result ) {
+  $pages[] = $result->id;
+}
+
+foreach ( $nids_results as $result ) {
+  $turned_off[] = $result->page_title_manage;
+}
+
+$not_set = array_diff($existing, $pages);
+
+if ( count($turned_off) > 0 ) {
+   $not_removed = array_diff($not_set, $turned_off);
+ }
+  else {
+    $not_removed = $not_set;
+  }
+
+
+if ( arg(2) == 'tab2' ) {
+   foreach ( $turned_off as $nid ) {
+     $node = node_load($nid);
+     $titles[$node->nid] = $node->title;
+   }
+}
+ elseif ( arg(2) == 'tab3' ) {
+   foreach ( $page_results as $nid ) {
+     $node = node_load($nid->id);
+     $titles[$node->nid] = $node->title;
+   }
+} 
+  else {
+   foreach ( $not_removed as $nid ) {
+     $node = node_load($nid);
+     $titles[$node->nid] = $node->title;
+   }
+ }
+
+  $form['site_webforms'] = array(
+    '#type' => 'checkboxes',
+    '#options' => $titles,
+    '#title' => t('Pages'),
+    //'#default_value' => '',
+  );
 
   $form['markup'] = array(
     '#markup' => $markup,
@@ -63,17 +132,24 @@ function page_title_manage_form($form, &$form_state) {
 
 
 function page_title_manage_form_submit($form, $form_state) {
-
-   db_insert('page_title_manage')
-         ->fields(array('content_type', 'content_element', 'webform', 'webform_component'))
+ foreach ( $form_state['input']['site_webforms'] as $key => $value ) {
+     if ( $value > 0 ) {
+      if ( arg(2) == 'tab2' ) {
+        db_delete('page_title_manage')
+          ->condition('page_title_manage', $value )
+          ->execute();
+      }
+       else {
+        db_insert('page_title_manage')
+         ->fields(array('page_title_manage', 'data'))
          ->values(array(
-           'content_type'      => $form_state['input']['content_type'],
-           'content_element'   => $form_state['input']['dropdown_second'],
-           'webform'           => $form_state['input']['webforms'],
-           'webform_component' => $form_state['input']['dropdown_second_element'],
-
+           'page_title_manage' => $value,
+           'data'              => time(),
          ))
         ->execute();
+      }
+    }
+  }
 }
 
 

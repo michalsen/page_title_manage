@@ -5,3 +5,6 @@ description = Manage entries in the page_title table
 package = SEO
 
 dependencies[] = page_title
+
+version = "7.x-1.10"
+core = "7.x"

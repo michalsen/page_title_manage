@@ -7,13 +7,13 @@
 
 function page_title_manage_schema() {
 $schema['page_title_manage'] = array(
-        'description' => 'Control for Title Pop.',
+        'description' => 'Control for Page Title Management.',
           'fields' => array(
             'page_title_manage' => array(
-              'description' => 'auto increment id',
+              'description' => 'node nid',
               'type' => 'serial'),
-            'content_type' => array(
-              'description' => 'content type',
+            'data' => array(
+              'description' => 'date not used (yet)',
               'type' => 'varchar',
               'length' => 255),
          ),
