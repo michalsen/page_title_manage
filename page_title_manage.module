@@ -56,9 +56,11 @@ function page_title_manage_page() {
 
 function page_title_manage_form($form, &$form_state) {
 
-$node_results = db_query('SELECT nid FROM {node}');
+drupal_add_css(drupal_get_path('module', 'page_title_manage') . '/page_title_manage.css');
+
+$node_results = db_query('SELECT nid FROM {node}')->fetchAll();
 $page_results = db_query('SELECT id FROM {page_title} WHERE type = :type', array(':type' => "node"))->fetchAll();
-$nids_results = db_query('SELECT page_title_manage FROM {page_title_manage}');
+$nids_results = db_query('SELECT page_title_manage FROM {page_title_manage}')->fetchAll();
 
 
 foreach ( $node_results as $result ) {
@@ -83,24 +85,23 @@ if ( count($turned_off) > 0 ) {
   }
 
 
-if ( arg(2) == 'tab2' ) {
-   foreach ( $turned_off as $nid ) {
-     $node = node_load($nid);
-     $titles[$node->nid] = $node->title;
-   }
-}
- elseif ( arg(2) == 'tab3' ) {
-   foreach ( $page_results as $nid ) {
-     $node = node_load($nid->id);
-     $titles[$node->nid] = $node->title;
-   }
-} 
-  else {
-   foreach ( $not_removed as $nid ) {
-     $node = node_load($nid);
-     $titles[$node->nid] = $node->title;
-   }
+ switch ( arg(2) ) {
+    case "tab2":
+      $nid_array = $turned_off;
+     break;
+    case "tab3":
+      $nid_array = $pages;
+     break;   
+    default:
+      $nid_array = $not_removed;
  }
+
+   foreach ( $nid_array as $nid ) {
+     $node  = node_load($nid);
+     $line  = '<span id="node_edit"><a href="/node/' . $node->nid . '/edit?destination=' . $_SERVER['REQUEST_URI'] . '">edit</a></span>';
+     $line .= $node->title;
+     $titles[$node->nid] = $line;
+   }
 
   $form['site_webforms'] = array(
     '#type' => 'checkboxes',
